@@ -1,18 +1,16 @@
-uniform vec4 translationVec;
-uniform mat4 rotation;
-uniform mat4 scale;
+uniform vec2 translation;
+uniform vec2 rotation;
+uniform vec2 scale;
 
 in vec4 vPosition;
 in vec4 in_Color;
 
 varying vec4 ex_Color;
 
-void
-main() {
-
-vec4 offset;
-offset[0] = 60.0;
-offset[1] = 60.0;
-gl_Position =  gl_ModelViewProjectionMatrix * scale * rotation * (translationVec + vPosition);
-ex_Color = in_Color;
-}
+void main() {
+	
+	gl_Position =  gl_ModelViewMatrix * (vPosition + vec4( translation[0] , translation[1] , 0.0 , 0.0 ) );
+	
+	ex_Color = in_Color;
+	
+	}

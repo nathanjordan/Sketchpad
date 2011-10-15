@@ -9,12 +9,6 @@
 
 Line::Line( ) {
 	
-	translationMatrix = translationMatrix.I();
-
-	rotationMatrix = rotationMatrix.I();
-
-	scaleMatrix = scaleMatrix.I();
-
 	vertexShader = glCreateShader(GL_VERTEX_SHADER);
 	fragShader = glCreateShader(GL_FRAGMENT_SHADER);
 	program = glCreateProgram();
@@ -121,6 +115,12 @@ Line::Line( ) {
 
 	glUseProgram( program );
 
+	translationLocation = glGetUniformLocation( program , "translation" );
+
+	vertexLocation = glGetAttribLocation( program , "vPosition" );
+
+	colorLocation = glGetAttribLocation( program , "in_Color" );
+
 	/* Allocate and assign a Vertex Array Object to our handle */
 	glGenVertexArrays( 1, &vao );
 
@@ -142,69 +142,61 @@ Line::~Line() {
 void Line::draw() {
 
 
-	GLfloat tempVertices[ numVertices ][ Line::dimension ];
+	GLfloat* tempVertices = new GLfloat[ numVertices * 4];
 
 	for( int i = 0 ; i < numVertices ; i++ ) {
 
-		for( int j = 0 ; j < Line::dimension ; j++ ) {
+		for( int j = 0 ; j < 4 ; j++ ) {
 
-			tempVertices[i][j] = vertices[i][j];
+			tempVertices[i * 4 + j] = vertices[i][j];
 
 			}
 
 		}
 
-	GLfloat tempColors[ numVertices ][ 4 ];
+	GLfloat* tempColors = new GLfloat[ numVertices * 4];
 
 		for( int i = 0 ; i < numVertices ; i++ ) {
 
 			for( int j = 0 ; j < 4 ; j++ ) {
 
-				tempColors[i][j] = colors[i][j];
+				tempColors[i * 4 + j] = colors[i][j];
 
 				}
 
 			}
 
-	GLfloat* rotation= new GLfloat[16];
-	GLfloat* scale= new GLfloat[16];
-
-	buildMatrixUniform(rotation,rotationMatrix);
-	buildMatrixUniform(scale,rotationMatrix);
+	glUseProgram( program );
 
 	// Bind our first VBO as being the active buffer and storing vertex attributes (coordinates)
 	glBindBuffer( GL_ARRAY_BUFFER, vbo[0] );
 
 	// Copy the vertex data from diamond to our buffer
 	// 8 * sizeof(GLfloat) is the size of the diamond array, since it contains 8 GLfloat values
-	glBufferData(GL_ARRAY_BUFFER, numVertices * Line::dimension * sizeof(GLfloat), tempVertices , GL_STATIC_DRAW);
+	glBufferData( GL_ARRAY_BUFFER , 2 * 4 * sizeof(GLfloat) , tempVertices , GL_STATIC_DRAW );
 
 	// Specify that our coordinate data is going into attribute index 0, and contains two floats per vertex
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer( vertexLocation , 4 , GL_FLOAT , GL_FALSE , 0 , 0 );
 
 	// Enable attribute index 0 as being used
-	glEnableVertexAttribArray(0);
+	glEnableVertexAttribArray( vertexLocation );
 
 	//Bind our second VBO as being the active buffer and storing vertex attributes (colors)
-	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
+	glBindBuffer( GL_ARRAY_BUFFER , vbo[1] );
 
 	// Copy the color data from colors to our buffer
 	// 12 * sizeof(GLfloat) is the size of the colors array, since it contains 12 GLfloat values
-	glBufferData(GL_ARRAY_BUFFER, numVertices * 4 * sizeof(GLfloat), tempColors , GL_STATIC_DRAW);
+	glBufferData( GL_ARRAY_BUFFER , 2 * 4 * sizeof(GLfloat) , tempColors , GL_STATIC_DRAW );
 
 	// Specify that our color data is going into attribute index 1, and contains three floats per vertex
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	glVertexAttribPointer( colorLocation , 4 , GL_FLOAT, GL_FALSE, 0, 0);
 
 	// Enable attribute index 1 as being used
-	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray( colorLocation );
 
-	glUniform4fv(0,1, translationVec );
+	glUniform2fv( translationLocation , 1 , translationVec );
 
-	glUniformMatrix4fv(1,1,GL_FALSE, rotation );
-
-	glUniformMatrix4fv(2,1,GL_FALSE, scale );
-
-	glDrawArrays( GL_LINE_STRIP , 0, numVertices );
+	glDrawArrays( GL_LINE_STRIP , 0 , numVertices );
 
 }
 void Line::setVertices( int numVerts , TVec4<GLfloat> verts[2] ) {
@@ -241,11 +233,4 @@ void Line::setColors( int numColors , TVec4<GLfloat> newColors[2] ) {
 
 void Line::rotate( float radians ) {
 
-	}
-
-void Line::buildMatrixUniform( GLfloat* arr , Mat4& matrix ) {
-	double* mat = matrix;
-	for( int i = 0 ; i < 4 ; i++ )
-		for( int j = 0 ; j < 4 ; j++ )
-			arr[ i * 4 + j ] = mat[ i * 4 + j ];
 	}

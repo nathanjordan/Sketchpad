@@ -59,7 +59,8 @@ int drawType;
 
 //Modes
 const int LINE_MODE = 0;
-const int SQUARE_MODE = 1;
+const int POLY_MODE = 1;
+const int RECT_MODE = 2;
 
 //Menu Items
 const int MENU_LINES = 0;
@@ -117,6 +118,10 @@ void mouseButtonHandler( int button, int state, int x, int y);
  */
 void mouseMoveHandler(int x, int y);
 
+void lineClickHandler( int x , int y);
+
+void lineMoveHandler( int x , int y);
+
 //////////////////////////////////////////////////////////////////////////
 ////    Main Function
 //////////////////////////////////////////////////////////////////////////
@@ -125,35 +130,7 @@ int main(int argc , char** argv) {
 
 	initOpenGL(argc,argv);
 
-/*	TVec4<GLfloat>* one = new TVec4<GLfloat>(0.0,0.0,0.0,1.0);
-	TVec4<GLfloat>* two = new TVec4<GLfloat>(30.0,0.0,0.0,1.0);
-	TVec4<GLfloat>* three = new TVec4<GLfloat>(30.0,60.0,0.0,1.0);
-	TVec4<GLfloat>* four = new TVec4<GLfloat>(0.0,60.0,0.0,1.0);
-
-	TVec4<GLfloat>* arr = new TVec4<GLfloat>[4];
-
-	Shape* jjj = new Shape();
-
-	arr[0] = *one;
-	arr[1] = *two;
-	arr[2] = *three;
-	arr[3] = *four;
-
-	jjj->setVertices( 4 , arr );
-
-	jjj->setColors( 4 , arr );
-
-	shapeList2.insert( shapeList2.begin() , jjj );*/
-
-
-
-	glMatrixMode (GL_PROJECTION);
-	glLoadIdentity ();
-	gluOrtho2D (0, 500, 0, 500);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity ();
-
+	drawType = LINE_MODE;
 
 	//Run the program
 	glutMainLoop();
@@ -179,28 +156,20 @@ void initOpenGL(int argc , char** argv) {
 
 	glutDisplayFunc( displayCallback );
 
-	projectionMatrix[0][0] = 2.0 / 500.0;
-	projectionMatrix[1][1] = - 2.0 / 500.0;
-	projectionMatrix[2][2] = - 1.0;
-	projectionMatrix[3][3] = 1.0;
-
-	projectionMatrix[0][3] = -1.0;
-	projectionMatrix[1][3] = 1.0;
-	projectionMatrix[2][3] = 0.0;
-
 	glutSetKeyRepeat( GLUT_KEY_REPEAT_OFF );
 
 	glewExperimental = GL_TRUE;
 
 	glLineWidth(5.0);
 
-	//glutSetCursor( GLUT_CURSOR_NONE );
-
 	glutMouseFunc(mouseButtonHandler);
 
-	glutMotionFunc(mouseMoveHandler);
+	glutPassiveMotionFunc(mouseMoveHandler);
 
 	glewInit();
+
+	glOrtho(0.0,500.0,500.0,0.0,-1.0,1.0);
+
 
 	glutTimerFunc( 15 , timerTick , 0 );
 
@@ -219,7 +188,7 @@ void timerTick( int value ) {
 void displayCallback() {
 
 	//clear the background to black
-	glClearColor(1.0, 1.0 , 0.0 , 1.0 );
+	glClearColor(0.0, 0.0 , 0.0 , 1.0 );
 
 	glClear(GL_COLOR_BUFFER_BIT);
 
@@ -244,13 +213,29 @@ void displayCallback() {
 
 void mouseMoveHandler(int x, int y) {
 
+	if( !currentShape )
+		return;
+
+	if( drawType == LINE_MODE)
+		lineMoveHandler( x , y);
+
+	}
+
+void lineMoveHandler( int x , int y) {
 	TVec4<GLfloat> vertices[2];
-	TVec4<GLfloat> second( x - originX , originY - y , 0.0 , 1.0 );
+	TVec4<GLfloat> second( ( x - originX ) , ( y - originY ) , 0.0 , 1.0 );
 
 	vertices[0] = currentShape->vertices[0];
 	vertices[1] = second;
 
 	currentShape->setVertices( 2 , vertices );
+	}
+
+void lineClickHandler( int x , int y) {
+	if( currentShape ) {
+		currentShape = 0;
+		return;
+		}
 
 	GLdouble projection[16];
 	glGetDoublev(GL_PROJECTION_MATRIX, projection);
@@ -270,82 +255,58 @@ void mouseMoveHandler(int x, int y) {
 
 	gluUnProject(winX,winY,winZ,mv,projection,viewport,&worldX,&worldY,&worldZ);
 
+	TVec4<GLfloat> vertices[2];
+	TVec4<GLfloat> colors[2];
+
+	Line* tempLine = new Line();
+
+	TVec4<GLfloat> begin( 0.0 , 0.0 , 0.0 , 1.0 );
+	TVec4<GLfloat> end( 0.0 , 0.0 , 0.0 , 1.0 );
+
+	vertices[0] = begin;
+	vertices[1] = end;
+
+	tempLine->setVertices( 2 , vertices );
+
+	TVec4<GLfloat> color1( 1.0 , 0.0 , 1.0 , 1.0 );
+	TVec4<GLfloat> color2( 0.0 , 0.0 , 1.0 , 1.0 );
+
+	colors[0] = color1;
+	colors[1] = color2;
+
+	tempLine->setColors( 2 , colors );
+
+	TVec2<GLfloat> translationVec;
+
+	translationVec[0] = worldX;
+	translationVec[1] = worldY;
+
+	tempLine->translationVec = translationVec;
+
+	currentShape = tempLine;
+
+	shapeList.insert( shapeList.begin() , tempLine );
+
+	originX = x;
+	originY = y;
 	}
 
 void mouseButtonHandler( int button, int state, int x, int y) {
 
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_DOWN ) {
 
-		GLdouble projection[16];
-		glGetDoublev(GL_PROJECTION_MATRIX, projection);
+		if( drawType == LINE_MODE ) {
+			lineClickHandler( x , y );
+			}
 
-		GLdouble mv[16];
-		glGetDoublev(GL_MODELVIEW_MATRIX, mv);
+		if( drawType == POLY_MODE ) {
 
-		GLint viewport[4];
-		glGetIntegerv( GL_VIEWPORT, viewport );
-
-		GLfloat winX = (float)x;
-		GLfloat winY = (float)viewport[3] - (float)y;
-		GLfloat winZ;
-		glReadPixels( x, int(winY), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
-
-		double worldX,worldY,worldZ;
-
-		gluUnProject(winX,winY,winZ,mv,projection,viewport,&worldX,&worldY,&worldZ);
-
-		TVec4<GLfloat> vertices[2];
-		TVec4<GLfloat> colors[2];
-
-		Line* tempLine = new Line();
-
-		TVec4<GLfloat> begin( 0.0 , 0.0 , 0.0 , 1.0 );
-		TVec4<GLfloat> end( 0.0 , 0.0 , 0.0 , 1.0 );
-
-		vertices[0] = begin;
-		vertices[1] = end;
-
-		tempLine->setVertices( 2 , vertices );
-
-		TVec4<GLfloat> color1( 0.0 , 1.0 , 1.0 , 1.0 );
-		TVec4<GLfloat> color2( 0.0 , 1.0 , 1.0 , 1.0 );
-
-		colors[0] = color1;
-		colors[1] = color2;
-
-		tempLine->setColors( 2 , colors );
-
-		Mat4 translationMatrix;
-
-		translationMatrix = translationMatrix.I();
-
-		translationMatrix[0][3] = worldX;
-		translationMatrix[1][3] = worldY;
-		translationMatrix[2][3] = 0.0;
-
-		TVec4<GLfloat> translationVec;
-
-		translationVec[0] = worldX;
-		translationVec[1] = worldY;
-
-		tempLine->translationVec = translationVec;
-
-		tempLine->translationMatrix = translationMatrix;
-
-		tempLine->projectionMatrix = projectionMatrix;
-
-		currentShape = tempLine;
-
-		shapeList.insert( shapeList.begin() , tempLine );
-
-		originX = x;
-		originY = y;
+			}
 
 		}
 
-	else if( button == GLUT_LEFT_BUTTON && state == GLUT_UP ) {
+	else if( button == GLUT_MIDDLE_BUTTON && state == GLUT_DOWN ) {
 
-		originX = originX;
 
 		}
 

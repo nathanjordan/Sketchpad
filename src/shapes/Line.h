@@ -29,14 +29,8 @@ public:
 	void setVertices( int , TVec4<GLfloat>[2] );
 	void setColors( int , TVec4<GLfloat>[2] );
 	void rotate( float );
-	void buildMatrixUniform( GLfloat* arr , Mat4& matrix );
 
-	Mat4 translationMatrix;
-	TVec4<GLfloat> translationVec;
-	Mat4 rotationMatrix;
-	Mat4 scaleMatrix;
-	Mat4 projectionMatrix;
-	GLfloat friction;
+	TVec2<GLfloat> translationVec;
 	TVec4<GLfloat> vertices[2];
 	TVec4<GLfloat> colors[2];
 	GLfloat height,width;
@@ -48,6 +42,11 @@ protected:
 	GLuint vertexShader;
 	GLuint fragShader;
 	GLuint vao, vbo[2];
+	GLint translationLocation;
+	GLint rotationLocation;
+	GLint scaleLocation;
+	GLint vertexLocation;
+	GLint colorLocation;
 
 	int numVertices;
 	};
