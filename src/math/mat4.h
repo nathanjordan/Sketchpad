@@ -49,7 +49,7 @@ public:
     operator       double*()       { return row[0]; }
     operator const double*()       { return row[0]; }
     operator const double*() const { return row[0]; }
-
+    operator float*();
     // Assignment methods
     //
     inline Mat4& operator=(const Mat4& m);

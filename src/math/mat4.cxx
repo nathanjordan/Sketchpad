@@ -2,7 +2,7 @@
 
   4x4 Matrix class
   
-  $Id: mat4.cxx 427 2004-09-27 04:45:31Z garland $
+$Id: mat4.cxx 427 2004-09-27 04:45:31Z garland $
 
  ************************************************************************/
 
@@ -134,6 +134,15 @@ double invert_cramer(Mat4& inv, const Mat4& m)
     inv = transpose(A) / d;
     return d;
 }
+
+Mat4::operator float*() {
+	float* temp = new float[16];
+	for( int i = 0 ; i < 4 ; i++ )
+		for( int j = 0 ; j < 4 ; j++ )
+			temp[ i * 4 + j ] = row[ i ][ j ];
+	return temp;
+	}
+
 
 
 
