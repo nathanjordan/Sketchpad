@@ -5,8 +5,8 @@
  *      Author: njordan
  */
 
-#ifndef GL_SHAPE_H_
-#define GL_SHAPE_H_
+#ifndef GL_LINE_H_
+#define GL_LINE_H_
 
 #include <GL/glew.h>
 #include <GL/glut.h>
@@ -20,25 +20,22 @@
 
 
 class Shape {
-public:
-	static const int dimension = 2;
 
-	Shape();
+public:
+
+	Shape( );
 	virtual ~Shape();
 	void draw();
 	void setVertices( int , TVec4<GLfloat>* );
 	void setColors( int , TVec4<GLfloat>* );
 	void rotate( float );
 
-	Mat4 translationMatrix;
-	Mat4 rotationMatrix;
-	Mat4 scaleMatrix;
-	Mat4 projectionMatrix;
-	GLfloat friction;
+	TVec2<GLfloat> translationVec;
 	TVec4<GLfloat>* vertices;
 	TVec4<GLfloat>* colors;
 	GLfloat height,width;
 	GLfloat boundingBox[4][4];
+	int numVertices;
 
 protected:
 	
@@ -46,8 +43,12 @@ protected:
 	GLuint vertexShader;
 	GLuint fragShader;
 	GLuint vao, vbo[2];
+	GLint translationLocation;
+	GLint rotationLocation;
+	GLint scaleLocation;
+	GLint vertexLocation;
+	GLint colorLocation;
 
-	int numVertices;
 	};
 
 #endif /* GL_SHAPE_H_ */

@@ -18,7 +18,6 @@
 #include <vector>
 
 //my classes
-#include "shapes/Line.h"
 #include "shapes/Shape.h"
 #include "math/mat4.h"
 #include "math/vec4.h"
@@ -44,10 +43,10 @@ stack<Mat4> matrixStack;
 
 Mat4 projectionMatrix;
 
-vector<Line*> shapeList;
+vector<Shape*> shapeList;
 vector<Shape*> shapeList2;
 
-Line* currentShape;
+Shape* currentShape;
 
 int originX,originY;
 
@@ -59,8 +58,12 @@ int drawType;
 
 //Modes
 const int LINE_MODE = 0;
-const int POLY_MODE = 1;
-const int RECT_MODE = 2;
+const int POLYLINE_MODE = 1;
+const int POLYGON_MODE = 2;
+const int RECT_MODE = 3;
+const int FILLED_POLYGON_MODE = 4;
+const int FILLED_RECT_MODE = 5;
+const int POINT_MODE = 6;
 
 //Menu Items
 const int MENU_LINES = 0;
@@ -232,6 +235,7 @@ void lineMoveHandler( int x , int y) {
 	}
 
 void lineClickHandler( int x , int y) {
+
 	if( currentShape ) {
 		currentShape = 0;
 		return;
@@ -258,7 +262,7 @@ void lineClickHandler( int x , int y) {
 	TVec4<GLfloat> vertices[2];
 	TVec4<GLfloat> colors[2];
 
-	Line* tempLine = new Line();
+	Shape* tempLine = new Shape();
 
 	TVec4<GLfloat> begin( 0.0 , 0.0 , 0.0 , 1.0 );
 	TVec4<GLfloat> end( 0.0 , 0.0 , 0.0 , 1.0 );
@@ -299,7 +303,7 @@ void mouseButtonHandler( int button, int state, int x, int y) {
 			lineClickHandler( x , y );
 			}
 
-		if( drawType == POLY_MODE ) {
+		if( drawType == POLYGON_MODE ) {
 
 			}
 
