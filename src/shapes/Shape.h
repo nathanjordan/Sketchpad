@@ -38,7 +38,7 @@ public:
 	int numVertices;
 
 protected:
-	
+	GLuint glDrawMode;
 	GLuint program;
 	GLuint vertexShader;
 	GLuint fragShader;

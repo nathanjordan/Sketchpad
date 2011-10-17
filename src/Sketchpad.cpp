@@ -19,6 +19,11 @@
 
 //my classes
 #include "shapes/Shape.h"
+#include "shapes/SingleLine.h"
+#include "shapes/Polygon.h"
+#include "shapes/FilledPolygon.h"
+#include "shapes/Rect.h"
+#include "shapes/FilledRect.h"
 #include "math/mat4.h"
 #include "math/vec4.h"
 
@@ -50,13 +55,20 @@ Shape* currentShape;
 
 int originX,originY;
 
-int drawType;
+int drawMode;
+int sketchpadMode;
+
+GLuint drawMenu;
+GLuint selectMenu;
+GLuint colorsMenu;
+
+TVec4<GLfloat> currentColor;
 
 //////////////////////////////////////////////////////////////////////////
 ////    Constants
 //////////////////////////////////////////////////////////////////////////
 
-//Modes
+//Drawing Modes
 const int LINE_MODE = 0;
 const int POLYLINE_MODE = 1;
 const int POLYGON_MODE = 2;
@@ -65,11 +77,41 @@ const int FILLED_POLYGON_MODE = 4;
 const int FILLED_RECT_MODE = 5;
 const int POINT_MODE = 6;
 
+//Sketchpad modes
+const int SELECT_MODE = 0;
+const int DRAW_MODE = 1;
+const int EDIT_MODE = 2;
+const int COPY_MODE = 3;
+const int CUT_MODE = 4;
+const int TRANSLATE_MODE = 5;
+const int ROTATE_MODE = 6;
+const int SCALE_MODE = 7;
+
 //Menu Items
-const int MENU_LINES = 0;
-const int MENU_SQUARES = 1;
-const int MENU_SAVE = 2;
-const int MENU_LOAD = 3;
+const int MENU_SWITCH_SELECT = 12;
+const int MENU_SWITCH_DRAW = 13;
+
+const int MENU_DRAW_LINE = 0;
+const int MENU_DRAW_POLYGON = 1;
+const int MENU_DRAW_FILLED_POLYGON = 2;
+const int MENU_DRAW_RECT = 3;
+const int MENU_DRAW_FILLED_RECT = 4;
+
+const int MENU_COLOR_RED = 0;
+const int MENU_COLOR_GREEN = 1;
+const int MENU_COLOR_BLUE = 2;
+const int MENU_COLOR_CYAN = 3;
+const int MENU_COLOR_MAGENTA = 4;
+const int MENU_COLOR_YELLOW = 5;
+const int MENU_COLORS = 6;
+
+//Color constants
+const TVec4<GLfloat> COLOR_RED = TVec4<GLfloat>(1.0,0.0,0.0,1.0);
+const TVec4<GLfloat> COLOR_GREEN = TVec4<GLfloat>(0.0,1.0,0.0,1.0);
+const TVec4<GLfloat> COLOR_BLUE = TVec4<GLfloat>(0.0,0.0,1.0,1.0);
+const TVec4<GLfloat> COLOR_YELLOW = TVec4<GLfloat>(1.0,1.0,0.0,1.0);
+const TVec4<GLfloat> COLOR_CYAN = TVec4<GLfloat>(0.0,1.0,1.0,1.0);
+const TVec4<GLfloat> COLOR_MAGENTA = TVec4<GLfloat>(1.0,0.0,1.0,1.0);
 
 //////////////////////////////////////////////////////////////////////////
 ////    Function Declarations
@@ -88,8 +130,8 @@ void initMenus();
 /*
  * Runs when an item is selected in the main menu
  */
-void mainMenuCallback( int val );
-
+void drawMenuCallback( int val );
+void colorsMenuCallback( int val );
 /*
  * Runs every 15ms and updates object positions and
  * checks for scores and collisions
@@ -121,9 +163,11 @@ void mouseButtonHandler( int button, int state, int x, int y);
  */
 void mouseMoveHandler(int x, int y);
 
-void lineClickHandler( int x , int y);
 
-void lineMoveHandler( int x , int y);
+//Event function includes
+#include "draw/SingleLineFunctions.h"
+#include "draw/PolygonFunctions.h"
+#include "draw/RectFunctions.h"
 
 //////////////////////////////////////////////////////////////////////////
 ////    Main Function
@@ -133,7 +177,9 @@ int main(int argc , char** argv) {
 
 	initOpenGL(argc,argv);
 
-	drawType = LINE_MODE;
+	initMenus();
+
+	currentColor = COLOR_CYAN;
 
 	//Run the program
 	glutMainLoop();
@@ -173,6 +219,7 @@ void initOpenGL(int argc , char** argv) {
 
 	glOrtho(0.0,500.0,500.0,0.0,-1.0,1.0);
 
+	glutKeyboardFunc( polygonDrawEnterHandler );
 
 	glutTimerFunc( 15 , timerTick , 0 );
 
@@ -219,94 +266,33 @@ void mouseMoveHandler(int x, int y) {
 	if( !currentShape )
 		return;
 
-	if( drawType == LINE_MODE)
-		lineMoveHandler( x , y);
+	if( drawMode == LINE_MODE)
+		singleLineDrawModeHandler( x , y);
+
+	else if ( drawMode == POLYGON_MODE || drawMode == FILLED_POLYGON_MODE )
+		polygonDrawMoveHandler(x,y);
+
+	else if( drawMode == RECT_MODE || drawMode == FILLED_RECT_MODE )
+		rectDrawMoveHandler(x,y);
+
 
 	}
 
-void lineMoveHandler( int x , int y) {
-	TVec4<GLfloat> vertices[2];
-	TVec4<GLfloat> second( ( x - originX ) , ( y - originY ) , 0.0 , 1.0 );
-
-	vertices[0] = currentShape->vertices[0];
-	vertices[1] = second;
-
-	currentShape->setVertices( 2 , vertices );
-	}
-
-void lineClickHandler( int x , int y) {
-
-	if( currentShape ) {
-		currentShape = 0;
-		return;
-		}
-
-	GLdouble projection[16];
-	glGetDoublev(GL_PROJECTION_MATRIX, projection);
-
-	GLdouble mv[16];
-	glGetDoublev(GL_MODELVIEW_MATRIX, mv);
-
-	GLint viewport[4];
-	glGetIntegerv( GL_VIEWPORT, viewport );
-
-	GLfloat winX = (float)x;
-	GLfloat winY = (float)viewport[3] - (float)y;
-	GLfloat winZ;
-	glReadPixels( x, int(winY), 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ );
-
-	double worldX,worldY,worldZ;
-
-	gluUnProject(winX,winY,winZ,mv,projection,viewport,&worldX,&worldY,&worldZ);
-
-	TVec4<GLfloat> vertices[2];
-	TVec4<GLfloat> colors[2];
-
-	Shape* tempLine = new Shape();
-
-	TVec4<GLfloat> begin( 0.0 , 0.0 , 0.0 , 1.0 );
-	TVec4<GLfloat> end( 0.0 , 0.0 , 0.0 , 1.0 );
-
-	vertices[0] = begin;
-	vertices[1] = end;
-
-	tempLine->setVertices( 2 , vertices );
-
-	TVec4<GLfloat> color1( 1.0 , 0.0 , 1.0 , 1.0 );
-	TVec4<GLfloat> color2( 0.0 , 0.0 , 1.0 , 1.0 );
-
-	colors[0] = color1;
-	colors[1] = color2;
-
-	tempLine->setColors( 2 , colors );
-
-	TVec2<GLfloat> translationVec;
-
-	translationVec[0] = worldX;
-	translationVec[1] = worldY;
-
-	tempLine->translationVec = translationVec;
-
-	currentShape = tempLine;
-
-	shapeList.insert( shapeList.begin() , tempLine );
-
-	originX = x;
-	originY = y;
-	}
 
 void mouseButtonHandler( int button, int state, int x, int y) {
 
 	if( button == GLUT_LEFT_BUTTON && state == GLUT_DOWN ) {
 
-		if( drawType == LINE_MODE ) {
-			lineClickHandler( x , y );
-			}
+		if( drawMode == LINE_MODE )
+			singleLineDrawClickHandler( x , y );
 
-		if( drawType == POLYGON_MODE ) {
 
-			}
+		else if( drawMode == POLYGON_MODE || drawMode == FILLED_POLYGON_MODE )
+			polygonDrawClickHandler(x,y);
 
+
+		else if( drawMode == RECT_MODE || drawMode == FILLED_RECT_MODE )
+			rectDrawClickHandler(x,y);
 		}
 
 	else if( button == GLUT_MIDDLE_BUTTON && state == GLUT_DOWN ) {
@@ -318,38 +304,102 @@ void mouseButtonHandler( int button, int state, int x, int y) {
 
 void initMenus() {
 
-	glutCreateMenu( mainMenuCallback );
+	colorsMenu = glutCreateMenu( colorsMenuCallback );
 
-	glutAddMenuEntry( "Lines" , MENU_LINES );
+	glutSetMenu(colorsMenu);
 
-	glutAddMenuEntry( "Squares" , MENU_SQUARES );
+	glutAddMenuEntry( "Red" , MENU_COLOR_RED );
 
-	glutAddMenuEntry( "Save" , MENU_SAVE );
+	glutAddMenuEntry( "Green" , MENU_COLOR_GREEN );
 
-	glutAddMenuEntry( "Load" , MENU_LOAD );
+	glutAddMenuEntry( "Blue" , MENU_COLOR_BLUE );
 
-	glutAttachMenu(GLUT_RIGHT_BUTTON);
+	glutAddMenuEntry( "Cyan" , MENU_COLOR_CYAN );
+
+	glutAddMenuEntry( "Magenta" , MENU_COLOR_MAGENTA );
+
+	glutAddMenuEntry( "Yellow" , MENU_COLOR_YELLOW );
+
+	drawMenu = glutCreateMenu( drawMenuCallback );
+
+	glutSetMenu(drawMenu);
+
+	glutAddMenuEntry( "Single Line" , MENU_DRAW_LINE );
+
+	glutAddMenuEntry( "Polygon" , MENU_DRAW_POLYGON );
+
+	glutAddMenuEntry( "Filled Polygon" , MENU_DRAW_FILLED_POLYGON );
+
+	glutAddMenuEntry( "Rectangle" , MENU_DRAW_RECT );
+
+	glutAddMenuEntry( "Filled Rectangle" , MENU_DRAW_FILLED_RECT );
+
+	glutAddSubMenu( "Colors", colorsMenu );
+
+	glutAddMenuEntry( "Select Mode" , MENU_SWITCH_SELECT );
+
+	glutAttachMenu( GLUT_RIGHT_BUTTON );
+
+	/*selectMenu = glutCreateMenu( selectMenuCallback );
+
+	glutSetMenu(drawMenu);
+
+	glutAddMenuEntry( "Single Line" , MENU_DRAW_LINE );
+
+	glutAddMenuEntry( "Polygon" , MENU_DRAW_POLYGON );
+
+	glutAddMenuEntry( "Filled Polygon" , MENU_DRAW_FILLED_POLYGON );
+
+	glutAddMenuEntry( "Rectangle" , MENU_DRAW_RECT );
+
+	glutAddMenuEntry( "Filled Rectangle" , MENU_DRAW_FILLED_RECT );*/
 
 	}
+void colorsMenuCallback( int val ) {
 
-void mainMenuCallback( int val ) {
+	if(val == MENU_COLOR_RED)
+		currentColor = COLOR_RED;
+	if(val == MENU_COLOR_GREEN)
+		currentColor = COLOR_GREEN;
+	if(val == MENU_COLOR_BLUE)
+		currentColor = COLOR_BLUE;
+	if(val == MENU_COLOR_CYAN)
+		currentColor = COLOR_CYAN;
+	if(val == MENU_COLOR_MAGENTA)
+		currentColor = COLOR_MAGENTA;
+	if(val == MENU_COLOR_YELLOW)
+		currentColor = COLOR_YELLOW;
 
-	if( val == MENU_LINES ) {
+	}
+void drawMenuCallback( int val ) {
 
+	if( val == MENU_DRAW_LINE ) {
+		drawMode = LINE_MODE;
 		}
 
-	else if( val == MENU_SQUARES ) {
-
+	else if( val == MENU_DRAW_POLYGON ) {
+		drawMode = POLYGON_MODE;
 		}
 
-	else if( val == MENU_SAVE ) {
-
+	else if( val == MENU_DRAW_FILLED_POLYGON ) {
+		drawMode = FILLED_POLYGON_MODE;
 		}
 
-	else if( val == MENU_LOAD ) {
-
+	else if( val == MENU_DRAW_RECT ) {
+		drawMode = RECT_MODE;
 		}
 
+	else if( val == MENU_DRAW_FILLED_RECT ) {
+		drawMode = FILLED_RECT_MODE;
+		}
+	else if( val == MENU_SWITCH_SELECT ) {
+
+		glutSetMenu(selectMenu);
+
+		glutAttachMenu(GLUT_RIGHT_BUTTON);
+
+		sketchpadMode = SELECT_MODE;
+		}
 	}
 
 void save() {

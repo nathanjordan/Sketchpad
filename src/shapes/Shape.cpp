@@ -197,7 +197,7 @@ void Shape::draw() {
 
 	glUniform2fv( translationLocation , 1 , translationVec );
 
-	glDrawArrays( GL_LINE_STRIP , 0 , numVertices );
+	glDrawArrays( glDrawMode , 0 , numVertices );
 
 }
 void Shape::setVertices( int numVerts , TVec4<GLfloat>* verts ) {
