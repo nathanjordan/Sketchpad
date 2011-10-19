@@ -6,6 +6,9 @@
  */
 
 #include "Utils.h"
+#include <iostream>
+#include <fstream>
+#include <string.h>
 
 Utils::Utils() {
 	throw 99;

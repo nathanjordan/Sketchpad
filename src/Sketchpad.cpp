@@ -246,13 +246,7 @@ void displayCallback() {
 	for( unsigned int i = 0 ; i < shapeList.size() ; i++ ) {
 
 		shapeList[i]->draw();
-
-		}
-
-	//draw all the shapes
-	for( unsigned int i = 0 ; i < shapeList2.size() ; i++ ) {
-
-		shapeList2[i]->draw();
+		shapeList[i]->drawBoundingBox();
 
 		}
 

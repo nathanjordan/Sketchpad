@@ -14,9 +14,10 @@
 #include <GL/glext.h>
 #include <limits>
 #include <iostream>
-#include "../util/Utils.h"
+//#include "../util/Utils.h"
 #include "../math/vec4.h"
 #include "../math/mat4.h"
+#include <math.h>
 
 
 class Shape {
@@ -29,15 +30,20 @@ public:
 	void setVertices( int , TVec4<GLfloat>* );
 	void setColors( int , TVec4<GLfloat>* );
 	void rotate( float );
+	void calcBoundingBox();
+	void drawBoundingBox();
+	void checkSelection( int , int );
 
 	TVec2<GLfloat> translationVec;
 	TVec4<GLfloat>* vertices;
 	TVec4<GLfloat>* colors;
-	GLfloat height,width;
-	GLfloat boundingBox[4][4];
+	GLfloat height, width;
+	TVec4<GLfloat>* boundingBox;
 	int numVertices;
+	float rotation;
 
 protected:
+
 	GLuint glDrawMode;
 	GLuint program;
 	GLuint vertexShader;
